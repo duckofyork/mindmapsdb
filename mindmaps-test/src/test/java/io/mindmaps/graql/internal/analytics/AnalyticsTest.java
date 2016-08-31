@@ -88,8 +88,6 @@ public class AnalyticsTest {
 
     @Before
     public void setUp() throws InterruptedException {
-//        System.out.println();
-//        System.out.println("Clearing the graph");
         graph = MindmapsClient.getGraph(TEST_KEYSPACE);
         graph.clear();
         graph = MindmapsClient.getGraph(TEST_KEYSPACE);
@@ -542,7 +540,7 @@ public class AnalyticsTest {
         assertTrue(CollectionUtils.isEqualCollection(currentDegrees.values(),referenceDegrees.values()));
     }
 
-    @Ignore
+//    @Ignore
     @Test
     public void testDegreeIsPersistedInPresenceOfOtherResource() throws MindmapsValidationException, ExecutionException, InterruptedException {
         // create a simple graph
@@ -579,7 +577,6 @@ public class AnalyticsTest {
         // validate
         transaction.commit();
 
-        ResourceType<Long> degreeResource = transaction.getResourceType(Analytics.degree);
         mansBestFriend = transaction.getRelationType("mans-best-friend");
         person = transaction.getEntityType("person");
         animal = transaction.getEntityType("animal");
@@ -593,6 +590,7 @@ public class AnalyticsTest {
         analytics.degreesAndPersist();
 
         // check degrees are correct
+        ResourceType<Long> degreeResource = transaction.getResourceType(Analytics.degree);
         boolean isSeen = false;
         for (Map.Entry<String, Long> entry : referenceDegrees.entrySet()) {
             Instance instance = transaction.getInstance(entry.getKey());
@@ -600,7 +598,7 @@ public class AnalyticsTest {
                 for (Resource<?> resource : instance.asEntity().resources()) {
                     if (resource.type().equals(degreeResource)) {
                         // check value is correct
-                        assertTrue(resource.getValue().equals(entry.getValue()));
+                        assertEquals(resource.getValue(), entry.getValue());
                         // ensure a resource of this type is seen
                         isSeen = true;
                     }
@@ -609,7 +607,7 @@ public class AnalyticsTest {
                 for (Resource<?> resource : instance.asRelation().resources()) {
                     if (resource.type().equals(degreeResource)) {
                         // check value
-                        assertTrue(resource.getValue().equals(entry.getValue()));
+                        assertEquals(resource.getValue(), entry.getValue());
                         // ensure exists
                         isSeen = true;
                     }
