@@ -28,6 +28,7 @@ import ai.grakn.graql.analytics.MeanQuery;
 import ai.grakn.graql.analytics.MedianQuery;
 import ai.grakn.graql.analytics.MinQuery;
 import ai.grakn.graql.analytics.PathQuery;
+import ai.grakn.graql.analytics.PatternQuery;
 import ai.grakn.graql.analytics.StdQuery;
 import ai.grakn.graql.analytics.SumQuery;
 
@@ -104,5 +105,10 @@ public class ComputeQueryBuilderImpl implements ComputeQueryBuilder {
     @Override
     public DegreeQuery degree() {
         return new DegreeQueryImpl(graph);
+    }
+
+    @Override
+    public PatternQuery patterns() {
+        return new PatternQueryImpl(graph);
     }
 }

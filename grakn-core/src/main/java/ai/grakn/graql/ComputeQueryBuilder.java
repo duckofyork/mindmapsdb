@@ -27,6 +27,7 @@ import ai.grakn.graql.analytics.MeanQuery;
 import ai.grakn.graql.analytics.MedianQuery;
 import ai.grakn.graql.analytics.MinQuery;
 import ai.grakn.graql.analytics.PathQuery;
+import ai.grakn.graql.analytics.PatternQuery;
 import ai.grakn.graql.analytics.StdQuery;
 import ai.grakn.graql.analytics.SumQuery;
 
@@ -94,4 +95,6 @@ public interface ComputeQueryBuilder {
      * @return a degree query that will compute the degree of instances
      */
     DegreeQuery degree();
+
+    PatternQuery patterns();
 }

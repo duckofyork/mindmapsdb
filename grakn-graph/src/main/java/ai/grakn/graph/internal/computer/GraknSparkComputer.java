@@ -360,6 +360,12 @@ public final class GraknSparkComputer extends AbstractHadoopGraphComputer {
         Spark.close();
     }
 
+    public static synchronized void close() {
+        if (graknGraphRDD != null && graknGraphRDD.sparkContext != null) {
+            graknGraphRDD.sparkContext.close();
+        }
+    }
+
     private static class GraknGraphRDD {
 
         private static boolean commit = false;
