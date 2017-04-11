@@ -22,6 +22,7 @@ import ai.grakn.Grakn;
 import ai.grakn.GraknGraph;
 import ai.grakn.GraknSession;
 import ai.grakn.GraknTxType;
+import ai.grakn.concept.Concept;
 import ai.grakn.concept.ConceptId;
 import ai.grakn.concept.Entity;
 import ai.grakn.concept.EntityType;
@@ -33,15 +34,24 @@ import ai.grakn.exception.GraknValidationException;
 import ai.grakn.graph.internal.computer.GraknSparkComputer;
 import ai.grakn.test.EngineContext;
 import ai.grakn.util.Schema;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.mllib.fpm.AssociationRules;
+import org.apache.spark.mllib.fpm.FPGrowth;
+import org.apache.spark.mllib.fpm.FPGrowthModel;
+
 import org.apache.tinkerpop.gremlin.spark.structure.Spark;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static ai.grakn.graql.Graql.var;
 import static ai.grakn.test.GraknTestEnv.usingOrientDB;
 import static ai.grakn.test.GraknTestEnv.usingTinker;
 import static org.junit.Assume.assumeFalse;
@@ -83,13 +93,21 @@ public class PatternTest {
 //    }
 
     @Test
-    public void testMinAndMax() throws Exception {
+    public void testPatterns() throws Exception {
         // TODO: Fix in TinkerGraphComputer
 //        assumeFalse(usingTinker());
 
+//        StringBuilder stringBuilder = new StringBuilder();
+//        String a = "a\ta\ta\t";
+//        String[] b = a.split("\t");
+//        System.out.println(b);
+//        for (int i = 0; i < b.length; i++) {
+//            System.out.println("b[i] = " + b[i]);
+//        }
+
         GraknSparkComputer.close();
 
-        Map<String, Long> result;
+        final Map<String, Long> result;
 
 //        // resource-type has no instance
 //        addOntologyAndEntities();
@@ -101,10 +119,54 @@ public class PatternTest {
         try (GraknSession session = Grakn.session(Grakn.DEFAULT_URI, "ihsmarkit")) {
             // open a graph (database transaction)
             try (GraknGraph graph = session.open(GraknTxType.READ)) {
-                result = graph.graql().compute().patterns().of("energy-asset").execute();
+
+//                List<Map<String, Concept>> name = graph.graql()
+//                        .match(var().id(ConceptId.of("446560")).has("name", var("name"))).execute();
+//                System.out.println("name = " + name.get(0).get("name").asResource().getValue().toString());
+
+                result = graph.graql().compute().patterns().of("oil-company").execute();
+                System.out.println("result = " + result);
+//                result = graph.graql().compute().patterns().of("cds").execute();
+//                System.out.println("result = " + result);
             }
         }
-        System.out.println("result = " + result);
+        GraknSparkComputer.close();
+
+        List<String> patterns = new ArrayList<>();
+        if (result != null) {
+            result.keySet().forEach(key -> {
+                for (long i = 0; i < result.get(key); i++) {
+                    patterns.add(key);
+                }
+            });
+        }
+
+        SparkConf sparkConf = new SparkConf()
+                .setAppName("FP")
+                .setMaster("local[*]");
+
+        JavaSparkContext sparkContext = new JavaSparkContext(sparkConf);
+
+        JavaRDD<List<String>> patternRdd = sparkContext.parallelize(patterns)
+                .map(combo -> Arrays.asList(combo.split("\t")));
+
+        FPGrowth fpg = new FPGrowth();
+//                .setMinSupport(0.1);
+//                .setNumPartitions(10);
+        FPGrowthModel<String> model = fpg.run(patternRdd);
+
+        for (FPGrowth.FreqItemset<String> itemset : model.freqItemsets().toJavaRDD().collect()) {
+            System.out.println("[" + itemset.javaItems() + "], " + itemset.freq());
+        }
+
+        double minConfidence = 0.5;
+        for (AssociationRules.Rule<String> rule
+                : model.generateAssociationRules(minConfidence).toJavaRDD().collect()) {
+            System.out.println(
+                    rule.javaAntecedent() + " => " + rule.javaConsequent() + ", " + rule.confidence());
+        }
+
+        sparkContext.close();
     }
 
     private void addOntologyAndEntities() throws GraknValidationException {

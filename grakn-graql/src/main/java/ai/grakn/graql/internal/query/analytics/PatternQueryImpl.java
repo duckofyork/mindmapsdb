@@ -19,6 +19,8 @@
 package ai.grakn.graql.internal.query.analytics;
 
 import ai.grakn.GraknGraph;
+import ai.grakn.concept.Concept;
+import ai.grakn.concept.ConceptId;
 import ai.grakn.concept.TypeName;
 import ai.grakn.graql.analytics.PatternQuery;
 import ai.grakn.graql.internal.analytics.ClusterSizeMapReduce;
@@ -31,12 +33,15 @@ import org.apache.tinkerpop.gremlin.process.computer.ComputerResult;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static ai.grakn.graql.Graql.var;
 import static java.util.stream.Collectors.joining;
 
 class PatternQueryImpl extends AbstractComputeQuery<Map<String, Long>> implements PatternQuery {
@@ -74,7 +79,22 @@ class PatternQueryImpl extends AbstractComputeQuery<Map<String, Long>> implement
                 new ClusterSizeMapReduce(ofTypeNames, PatternVertexProgram.FREQUENT_PATTERN));
 
         LOGGER.info("PatternVertexProgram is done in " + (System.currentTimeMillis() - startTime) + " ms");
-        return result.memory().get(ClusterSizeMapReduce.class.getName());
+        Map<String, Long> patternMap = result.memory().get(ClusterSizeMapReduce.class.getName());
+        final Map<String, Long> patternValueMap = new HashMap<>();
+        patternMap.forEach((oldKey, oldValue) -> {
+            String key = Arrays.stream(oldKey.split("\t")).map(combo -> {
+                String[] pair = combo.split(":");
+                List<Map<String, Concept>> matchResultMap = graph.get().graql()
+                        .match(var().id(ConceptId.of(pair[1])).has("name", var("name")))
+                        .execute();
+                if (matchResultMap.isEmpty()) {
+                    return combo;
+                }
+                return pair[0] + " : " + matchResultMap.get(0).get("name").asResource().getValue().toString();
+            }).distinct().collect(Collectors.joining("\t"));
+            patternValueMap.put(key, oldValue);
+        });
+        return patternValueMap;
     }
 
     @Override

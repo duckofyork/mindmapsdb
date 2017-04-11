@@ -78,9 +78,13 @@ public class PatternVertexProgram extends GraknVertexProgram<String> {
     public Set<MessageScope> getMessageScopes(final Memory memory) {
         switch (memory.getIteration()) {
             case 0:
-                return messageScopeSetInstance;
+                return Collections.singleton(messageScopeInRolePlayer);
             case 1:
-                return messageScopeSetCasting;
+                return Collections.singleton(messageScopeInCasting);
+            case 2:
+                return Collections.singleton(messageScopeOutCasting);
+            case 3:
+                return Collections.singleton(messageScopeOutRolePlayer);
             default:
                 return Collections.emptySet();
         }
@@ -92,34 +96,81 @@ public class PatternVertexProgram extends GraknVertexProgram<String> {
         switch (memory.getIteration()) {
             case 0:
                 vertexType = Utility.getVertexType(vertex);
-                if (selectedTypes.contains(vertexType) && vertex.label().equals(Schema.BaseType.RELATION.name())) {
-                    messenger.sendMessage(messageScopeOutCasting, vertexType.getValue());
-
+                if (selectedTypes.contains(vertexType) && vertex.label().equals(Schema.BaseType.ENTITY.name())) {
+                    messenger.sendMessage(messageScopeInRolePlayer, vertex.id().toString());
                 }
                 break;
             case 1:
                 if (vertex.label().equals(Schema.BaseType.CASTING.name()) && messenger.receiveMessages().hasNext()) {
-                    messenger.sendMessage(messageScopeOutRolePlayer, messenger.receiveMessages().next());
+                    messenger.sendMessage(messageScopeInCasting, messenger.receiveMessages().next());
                 }
                 break;
             case 2:
                 vertexType = Utility.getVertexType(vertex);
-                if (!vertex.label().equals(Schema.BaseType.RESOURCE_TYPE.name()) &&
-                        ofTypeNames.contains(vertexType) && messenger.receiveMessages().hasNext()) {
+                if (selectedTypes.contains(vertexType) && vertex.label().equals(Schema.BaseType.RELATION.name()) &&
+                        messenger.receiveMessages().hasNext()) {
+                    messenger.receiveMessages().forEachRemaining(message ->
+                            messenger.sendMessage(messageScopeOutCasting, vertexType + ":" + message));
+                }
+                break;
+            case 3:
+                if (vertex.label().equals(Schema.BaseType.CASTING.name()) && messenger.receiveMessages().hasNext()) {
+                    messenger.receiveMessages().forEachRemaining(
+                            message -> messenger.sendMessage(messageScopeOutRolePlayer, message));
+                }
+                break;
+            case 4:
+                vertexType = Utility.getVertexType(vertex);
+                if (ofTypeNames.contains(vertexType) && messenger.receiveMessages().hasNext()) {
                     Set<String> allMessages = new HashSet<>();
                     messenger.receiveMessages().forEachRemaining(allMessages::add);
+                    allMessages.remove(vertex.id().toString());
                     if (!allMessages.isEmpty()) {
                         StringBuilder stringBuilder = new StringBuilder();
-                        stringBuilder.append(vertexType.getValue());
                         allMessages.stream()
                                 .filter(s -> !s.startsWith("has-resource-"))
                                 .sorted(Comparator.naturalOrder())
-                                .map(s -> "\t" + s)
+                                .map(s -> s + "\t")
                                 .forEach(stringBuilder::append);
-                        vertex.property(FREQUENT_PATTERN, stringBuilder.toString());
+                        String patterns = stringBuilder.toString();
+                        if (!patterns.isEmpty()) {
+                            vertex.property(FREQUENT_PATTERN, patterns);
+                        }
                     }
                 }
                 break;
+//            case 0:
+//                vertexType = Utility.getVertexType(vertex);
+//                if (selectedTypes.contains(vertexType) && vertex.label().equals(Schema.BaseType.RELATION.name())) {
+//                    messenger.sendMessage(messageScopeOutCasting, vertexType.getValue());
+//
+//                }
+//                break;
+//            case 1:
+//                if (vertex.label().equals(Schema.BaseType.CASTING.name()) && messenger.receiveMessages().hasNext()) {
+//                    messenger.sendMessage(messageScopeOutRolePlayer, messenger.receiveMessages().next());
+//                }
+//                break;
+//            case 2:
+//                vertexType = Utility.getVertexType(vertex);
+//                if (!vertex.label().equals(Schema.BaseType.RESOURCE_TYPE.name()) &&
+//                        ofTypeNames.contains(vertexType) && messenger.receiveMessages().hasNext()) {
+//                    Set<String> allMessages = new HashSet<>();
+//                    messenger.receiveMessages().forEachRemaining(allMessages::add);
+//                    if (!allMessages.isEmpty()) {
+//                        StringBuilder stringBuilder = new StringBuilder();
+//                        allMessages.stream()
+//                                .filter(s -> !s.startsWith("has-resource-"))
+//                                .sorted(Comparator.naturalOrder())
+//                                .map(s -> s + "\t")
+//                                .forEach(stringBuilder::append);
+//                        String patterns = stringBuilder.toString();
+//                        if (!patterns.isEmpty()) {
+//                            vertex.property(FREQUENT_PATTERN, patterns);
+//                        }
+//                    }
+//                }
+//                break;
             default:
                 throw new RuntimeException("unreachable");
         }
@@ -128,6 +179,6 @@ public class PatternVertexProgram extends GraknVertexProgram<String> {
     @Override
     public boolean terminate(final Memory memory) {
         LOGGER.debug("Finished Pattern Iteration " + memory.getIteration());
-        return memory.getIteration() == 2;
+        return memory.getIteration() == 4;
     }
 }
