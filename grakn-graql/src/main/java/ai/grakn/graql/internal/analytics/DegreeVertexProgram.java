@@ -47,7 +47,7 @@ public class DegreeVertexProgram extends GraknVertexProgram<Long> {
 
     Set<TypeId> ofTypeIds = new HashSet<>();
 
-    private String degree;
+    String degree;
 
     // Needed internally for OLAP tasks
     public DegreeVertexProgram() {
@@ -69,9 +69,9 @@ public class DegreeVertexProgram extends GraknVertexProgram<Long> {
     @Override
     public void loadState(final Graph graph, final Configuration configuration) {
         super.loadState(graph, configuration);
-        degree = (String) this.persistentProperties.get(DEGREE);
         configuration.subset(OF_TYPE_LABELS).getKeys().forEachRemaining(key ->
                 ofTypeIds.add(TypeId.of(configuration.getInt(OF_TYPE_LABELS + "." + key))));
+        degree = (String) this.persistentProperties.get(DEGREE);
     }
 
     @Override
