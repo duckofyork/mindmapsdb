@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 class MeanQueryImpl extends AbstractStatisticsQuery<Optional<Double>> implements MeanQuery {
 
@@ -50,8 +51,10 @@ class MeanQueryImpl extends AbstractStatisticsQuery<Optional<Double>> implements
         Set<TypeId> allSubTypeIds = convertLabelsToIds(getCombinedSubTypes());
         Set<TypeId> statisticsResourceTypeIds = convertLabelsToIds(statisticsResourceTypeLabels);
 
+        String randomId = Integer.toString(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
+
         ComputerResult result = getGraphComputer().compute(
-                new DegreeStatisticsVertexProgram(allSubTypeIds, statisticsResourceTypeIds),
+                new DegreeStatisticsVertexProgram(allSubTypeIds, statisticsResourceTypeIds, randomId),
                 new MeanMapReduce(statisticsResourceTypeIds, dataType));
         Map<Serializable, Map<String, Double>> mean = result.memory().get(MeanMapReduce.class.getName());
         Map<String, Double> meanPair = mean.get(MapReduce.NullObject.instance());

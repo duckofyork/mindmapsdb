@@ -46,8 +46,8 @@ public class DegreeStatisticsVertexProgram extends DegreeVertexProgram {
     public DegreeStatisticsVertexProgram() {
     }
 
-    public DegreeStatisticsVertexProgram(Set<TypeId> types, Set<TypeId> ofTypeIDs) {
-        super(types, ofTypeIDs);
+    public DegreeStatisticsVertexProgram(Set<TypeId> types, Set<TypeId> ofTypeIDs, String randomId) {
+        super(types, ofTypeIDs, randomId);
     }
 
     @Override

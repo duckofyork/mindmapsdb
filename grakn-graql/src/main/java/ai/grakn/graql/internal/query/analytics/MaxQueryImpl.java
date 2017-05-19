@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 class MaxQueryImpl extends AbstractStatisticsQuery<Optional<Number>> implements MaxQuery {
 
@@ -50,8 +51,10 @@ class MaxQueryImpl extends AbstractStatisticsQuery<Optional<Number>> implements 
         Set<TypeId> allSubTypeIds = convertLabelsToIds(getCombinedSubTypes());
         Set<TypeId> statisticsResourceTypeIds = convertLabelsToIds(statisticsResourceTypeLabels);
 
+        String randomId = Integer.toString(ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE));
+
         ComputerResult result = getGraphComputer().compute(
-                new DegreeStatisticsVertexProgram(allSubTypeIds, statisticsResourceTypeIds),
+                new DegreeStatisticsVertexProgram(allSubTypeIds, statisticsResourceTypeIds, randomId),
                 new MaxMapReduce(statisticsResourceTypeIds, dataType));
         Map<Serializable, Number> max = result.memory().get(MaxMapReduce.class.getName());
 
