@@ -23,7 +23,6 @@ import ai.grakn.concept.TypeLabel;
 import ai.grakn.graql.analytics.CountQuery;
 import ai.grakn.graql.internal.analytics.CountMapReduce;
 import org.apache.tinkerpop.gremlin.process.computer.ComputerResult;
-import org.apache.tinkerpop.gremlin.process.computer.MapReduce;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -51,11 +50,12 @@ class CountQueryImpl extends AbstractComputeQuery<Long> implements CountQuery {
 
         ComputerResult result = getGraphComputer().compute(new CountMapReduce(
                 subTypeLabels.stream().map(graph.get().admin()::convertToId).collect(Collectors.toSet())));
-        Map<Serializable, Long> count = result.memory().get(CountMapReduce.class.getName());
+        Map<Serializable, Long> instanceCountByTypes = result.memory().get(CountMapReduce.class.getName());
+        long count = instanceCountByTypes.values().stream().reduce(0L, (a, b) -> a + b);
 
-        LOGGER.debug("Count = " + count.get(MapReduce.NullObject.instance()));
+        LOGGER.debug("Count = " + count);
         LOGGER.info("CountMapReduce is done in " + (System.currentTimeMillis() - startTime) + " ms");
-        return count.get(MapReduce.NullObject.instance());
+        return count;
     }
 
     @Override

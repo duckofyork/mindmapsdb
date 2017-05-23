@@ -19,11 +19,13 @@
 package ai.grakn.graql.internal.analytics;
 
 import ai.grakn.concept.TypeId;
+import org.apache.tinkerpop.gremlin.process.computer.KeyValue;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,8 +50,9 @@ public class CountMapReduce extends GraknMapReduce<Long> {
     public void safeMap(final Vertex vertex, final MapEmitter<Serializable, Long> emitter) {
         // use the ghost node detector here again
         if (!selectedTypes.isEmpty()) {
-            if (selectedTypes.contains(Utility.getVertexTypeId(vertex))) {
-                emitter.emit(NullObject.instance(), 1L);
+            TypeId vertexTypeId = Utility.getVertexTypeId(vertex);
+            if (selectedTypes.contains(vertexTypeId)) {
+                emitter.emit(vertexTypeId.getValue(), 1L);
                 return;
             }
         } else if (baseTypes.contains(vertex.label())) {
@@ -64,5 +67,12 @@ public class CountMapReduce extends GraknMapReduce<Long> {
     @Override
     Long reduceValues(Iterator<Long> values) {
         return IteratorUtils.reduce(values, 0L, (a, b) -> a + b);
+    }
+
+    @Override
+    public Map<Serializable, Long> generateFinalResult(Iterator<KeyValue<Serializable, Long>> keyValues) {
+        Map<Serializable, Long> finalResult = super.generateFinalResult(keyValues);
+        finalResult.remove(NullObject.instance());
+        return finalResult;
     }
 }
