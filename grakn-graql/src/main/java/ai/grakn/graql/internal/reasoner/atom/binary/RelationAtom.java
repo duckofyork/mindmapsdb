@@ -35,7 +35,6 @@ import ai.grakn.graql.admin.ReasonerQuery;
 import ai.grakn.graql.admin.RelationPlayer;
 import ai.grakn.graql.admin.Unifier;
 import ai.grakn.graql.admin.VarPatternAdmin;
-import ai.grakn.graql.admin.VarProperty;
 import ai.grakn.graql.internal.pattern.property.IsaProperty;
 import ai.grakn.graql.internal.pattern.property.RelationProperty;
 import ai.grakn.graql.internal.query.QueryAnswer;
@@ -102,11 +101,6 @@ public class RelationAtom extends IsaAtom {
         super(a);
         this.relationPlayers = a.relationPlayers;
         this.roleVarMap = a.roleVarMap;
-    }
-
-    @Override
-    public VarProperty getVarProperty() {
-        return getPattern().asVar().getProperty(RelationProperty.class).orElse(null);
     }
 
     @Override
