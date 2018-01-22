@@ -87,11 +87,6 @@ class CountQueryImpl extends AbstractComputeQuery<Long> implements CountQuery {
     }
 
     @Override
-    public boolean isReadOnly() {
-        return true;
-    }
-
-    @Override
     public CountQuery in(String... subTypeLabels) {
         return (CountQuery) super.in(subTypeLabels);
     }
